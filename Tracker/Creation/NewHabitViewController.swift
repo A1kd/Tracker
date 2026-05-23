@@ -173,12 +173,13 @@ final class NewHabitViewController: UIViewController {
         let tracker = Tracker(
             id: UUID(),
             name: name,
-            color: UIColor.trackerPalette.first ?? .ypRed,
-            emoji: "😪",
+            color: UIColor.trackerPalette.randomElement() ?? .ypRed,
+            emoji: TrackerConstants.emojis.randomElement() ?? "🙂",
             schedule: selectedSchedule
         )
-        dismiss(animated: true) { [weak self] in
-            self?.onCreate?(tracker)
+        let callback = onCreate
+        dismiss(animated: true) {
+            callback?(tracker)
         }
     }
 

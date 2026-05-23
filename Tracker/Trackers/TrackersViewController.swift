@@ -189,7 +189,26 @@ final class TrackersViewController: UIViewController {
             newCategories.append(TrackerCategory(title: defaultTitle, trackers: [tracker]))
         }
         categories = newCategories
+
+        shiftDateIfNeeded(for: tracker)
         reload()
+    }
+
+    private func shiftDateIfNeeded(for tracker: Tracker) {
+        guard !tracker.schedule.isEmpty else { return }
+        let currentDay = WeekDay.from(date: currentDate)
+        guard !tracker.schedule.contains(currentDay) else { return }
+
+        let calendar = Calendar.iso8601Ru
+        for offset in 1...7 {
+            guard let nextDate = calendar.date(byAdding: .day, value: offset, to: currentDate) else { continue }
+            let nextDay = WeekDay.from(date: nextDate)
+            if tracker.schedule.contains(nextDay) {
+                currentDate = calendar.startOfDay(for: nextDate)
+                datePicker.date = currentDate
+                return
+            }
+        }
     }
 
     @objc private func dateChanged(_ sender: UIDatePicker) {
