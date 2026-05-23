@@ -79,7 +79,18 @@ final class TrackersViewController: UIViewController {
         plusButton.tintColor = .ypBlackDay
         navigationItem.leftBarButtonItem = plusButton
 
-        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
+        let dateContainer = UIView()
+        dateContainer.translatesAutoresizingMaskIntoConstraints = false
+        datePicker.translatesAutoresizingMaskIntoConstraints = false
+        dateContainer.addSubview(datePicker)
+        NSLayoutConstraint.activate([
+            datePicker.topAnchor.constraint(equalTo: dateContainer.topAnchor),
+            datePicker.bottomAnchor.constraint(equalTo: dateContainer.bottomAnchor),
+            datePicker.leadingAnchor.constraint(equalTo: dateContainer.leadingAnchor),
+            datePicker.trailingAnchor.constraint(equalTo: dateContainer.trailingAnchor),
+            dateContainer.widthAnchor.constraint(equalToConstant: 140),
+        ])
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: dateContainer)
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
     }
