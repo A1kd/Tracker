@@ -2,8 +2,9 @@ import UIKit
 
 final class TrackersViewController: UIViewController {
 
-    var categories: [TrackerCategory] = []
-    var completedTrackers: [TrackerRecord] = []
+    private let trackerStore = TrackerStore()
+    private let recordStore = TrackerRecordStore()
+
     var currentDate: Date = Calendar.iso8601Ru.startOfDay(for: Date())
 
     private var searchText: String = ""
@@ -60,6 +61,7 @@ final class TrackersViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
+        trackerStore.delegate = self
         setupNavBar()
         setupLayout()
         reload()
@@ -117,7 +119,7 @@ final class TrackersViewController: UIViewController {
         let day = WeekDay.from(date: currentDate)
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
-        return categories.compactMap { category in
+        return trackerStore.categories().compactMap { category in
             let trackers = category.trackers.filter { tracker in
                 let scheduleMatch: Bool
                 if tracker.schedule.isEmpty {
@@ -142,14 +144,11 @@ final class TrackersViewController: UIViewController {
     }
 
     private func isTrackerCompletedToday(_ tracker: Tracker) -> Bool {
-        completedTrackers.contains { record in
-            record.trackerId == tracker.id &&
-            Calendar.iso8601Ru.isDate(record.date, inSameDayAs: currentDate)
-        }
+        (try? recordStore.hasRecord(trackerId: tracker.id, on: currentDate)) ?? false
     }
 
     private func completedCount(for tracker: Tracker) -> Int {
-        completedTrackers.filter { $0.trackerId == tracker.id }.count
+        (try? recordStore.count(forTrackerId: tracker.id)) ?? 0
     }
 
     // MARK: - Actions
@@ -167,42 +166,23 @@ final class TrackersViewController: UIViewController {
     }
 
     private func presentCreate(for type: TrackerType) {
-        let vc: UIViewController
-        switch type {
-        case .habit:
-            let habit = NewHabitViewController()
-            habit.onCreate = { [weak self] tracker in
-                self?.addTracker(tracker)
-            }
-            vc = habit
-        case .irregular:
-            let irregular = NewIrregularEventViewController()
-            irregular.onCreate = { [weak self] tracker in
-                self?.addTracker(tracker)
-            }
-            vc = irregular
+        let form = TrackerFormViewController(type: type)
+        form.onCreate = { [weak self] tracker, categoryTitle in
+            self?.addTracker(tracker, to: categoryTitle)
         }
-        let nav = UINavigationController(rootViewController: vc)
+        let nav = UINavigationController(rootViewController: form)
         nav.modalPresentationStyle = .pageSheet
         present(nav, animated: true)
     }
 
-    private func addTracker(_ tracker: Tracker) {
-        let defaultTitle = "Важное"
-        var newCategories = categories
-        if let index = newCategories.firstIndex(where: { $0.title == defaultTitle }) {
-            let updated = TrackerCategory(
-                title: newCategories[index].title,
-                trackers: newCategories[index].trackers + [tracker]
-            )
-            newCategories[index] = updated
-        } else {
-            newCategories.append(TrackerCategory(title: defaultTitle, trackers: [tracker]))
+    private func addTracker(_ tracker: Tracker, to categoryTitle: String) {
+        do {
+            try trackerStore.add(tracker, to: categoryTitle)
+            shiftDateIfNeeded(for: tracker)
+            // reload triggered via TrackerStoreDelegate
+        } catch {
+            assertionFailure("Failed to add tracker: \(error)")
         }
-        categories = newCategories
-
-        shiftDateIfNeeded(for: tracker)
-        reload()
     }
 
     private func shiftDateIfNeeded(for tracker: Tracker) {
@@ -224,6 +204,14 @@ final class TrackersViewController: UIViewController {
 
     @objc private func dateChanged(_ sender: UIDatePicker) {
         currentDate = Calendar.iso8601Ru.startOfDay(for: sender.date)
+        reload()
+    }
+}
+
+// MARK: - TrackerStoreDelegate
+
+extension TrackersViewController: TrackerStoreDelegate {
+    func trackerStoreDidUpdate() {
         reload()
     }
 }
@@ -291,17 +279,18 @@ extension TrackersViewController: UICollectionViewDataSource, UICollectionViewDe
         let tracker = visibleCategories[indexPath.section].trackers[indexPath.item]
 
         let today = Calendar.iso8601Ru.startOfDay(for: Date())
-        if currentDate > today {
-            return
-        }
+        if currentDate > today { return }
 
-        if let existing = completedTrackers.firstIndex(where: {
-            $0.trackerId == tracker.id && Calendar.iso8601Ru.isDate($0.date, inSameDayAs: currentDate)
-        }) {
-            completedTrackers.remove(at: existing)
-        } else {
-            completedTrackers.append(TrackerRecord(trackerId: tracker.id, date: currentDate))
+        do {
+            let record = TrackerRecord(trackerId: tracker.id, date: currentDate)
+            if try recordStore.hasRecord(trackerId: tracker.id, on: currentDate) {
+                try recordStore.remove(record)
+            } else {
+                try recordStore.add(record)
+            }
+            collectionView.reloadItems(at: [indexPath])
+        } catch {
+            assertionFailure("Toggle completion failed: \(error)")
         }
-        collectionView.reloadItems(at: [indexPath])
     }
 }
