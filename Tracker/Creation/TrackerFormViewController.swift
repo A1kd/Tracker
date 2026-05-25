@@ -12,10 +12,10 @@ final class TrackerFormViewController: UIViewController {
     var onCreate: ((Tracker, String) -> Void)?
 
     private let type: TrackerType
-    private let defaultCategoryTitle = "Важное"
     private let nameLimit = 38
 
     private var name: String = ""
+    private var selectedCategory: String = "Важное"
     private var selectedSchedule: [WeekDay] = []
     private var selectedEmojiIndex: Int?
     private var selectedColorIndex: Int?
@@ -192,7 +192,7 @@ final class TrackerFormViewController: UIViewController {
 
     private func reloadMenuCell() {
         if let cell = collectionView.cellForItem(at: IndexPath(item: 0, section: Section.menu.rawValue)) as? MenuCell {
-            cell.categoryRow.setSubtitle(defaultCategoryTitle)
+            cell.categoryRow.setSubtitle(selectedCategory)
             cell.scheduleRow.setSubtitle(scheduleSubtitle())
         }
     }
@@ -214,7 +214,7 @@ final class TrackerFormViewController: UIViewController {
             emoji: emojis[emojiIndex],
             schedule: type == .habit ? selectedSchedule : []
         )
-        let category = defaultCategoryTitle
+        let category = selectedCategory
         let callback = onCreate
         dismiss(animated: true) {
             callback?(tracker, category)
@@ -251,7 +251,7 @@ extension TrackerFormViewController: UICollectionViewDataSource {
         case .menu:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MenuCell.reuseID, for: indexPath) as! MenuCell
             cell.delegate = self
-            cell.categoryRow.setSubtitle(defaultCategoryTitle)
+            cell.categoryRow.setSubtitle(selectedCategory)
             cell.showSchedule(type == .habit)
             if type == .habit {
                 cell.scheduleRow.setSubtitle(scheduleSubtitle())
@@ -357,7 +357,15 @@ extension TrackerFormViewController: UITextFieldDelegate {
 extension TrackerFormViewController: MenuCellDelegate {
 
     func menuCellDidTapCategory(_ cell: MenuCell) {
-        // По ТЗ спринта 15: переход не осуществляется.
+        let viewModel = CategoryListViewModel(selectedTitle: selectedCategory)
+        let vc = CategoryListViewController(viewModel: viewModel)
+        vc.onSelectCategory = { [weak self] title in
+            guard let self else { return }
+            self.selectedCategory = title
+            self.reloadMenuCell()
+            self.updateCreateButtonState()
+        }
+        navigationController?.pushViewController(vc, animated: true)
     }
 
     func menuCellDidTapSchedule(_ cell: MenuCell) {
