@@ -14,8 +14,8 @@ final class CategoryListViewController: UIViewController {
         return v
     }()
 
-    private lazy var tableView: UITableView = {
-        let t = UITableView(frame: .zero, style: .plain)
+    private lazy var tableView: SelfSizingTableView = {
+        let t = SelfSizingTableView(frame: .zero, style: .plain)
         t.backgroundColor = .clear
         t.separatorColor = .ypGray.withAlphaComponent(0.3)
         t.separatorInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
@@ -79,7 +79,7 @@ final class CategoryListViewController: UIViewController {
             container.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
             container.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             container.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            container.bottomAnchor.constraint(equalTo: addButton.topAnchor, constant: -16),
+            container.bottomAnchor.constraint(lessThanOrEqualTo: addButton.topAnchor, constant: -16),
 
             tableView.topAnchor.constraint(equalTo: container.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: container.leadingAnchor),

@@ -33,6 +33,15 @@ final class TrackerCell: UICollectionViewCell {
         return l
     }()
 
+    private let pinImageView: UIImageView = {
+        let iv = UIImageView(image: SystemImages.pinFill)
+        iv.tintColor = .white
+        iv.contentMode = .scaleAspectFit
+        iv.isHidden = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
     private let titleLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 12, weight: .medium)
@@ -64,6 +73,7 @@ final class TrackerCell: UICollectionViewCell {
         contentView.addSubview(cardView)
         cardView.addSubview(emojiBackground)
         emojiBackground.addSubview(emojiLabel)
+        cardView.addSubview(pinImageView)
         cardView.addSubview(titleLabel)
         contentView.addSubview(counterLabel)
         contentView.addSubview(actionButton)
@@ -81,6 +91,11 @@ final class TrackerCell: UICollectionViewCell {
 
             emojiLabel.centerXAnchor.constraint(equalTo: emojiBackground.centerXAnchor),
             emojiLabel.centerYAnchor.constraint(equalTo: emojiBackground.centerYAnchor),
+
+            pinImageView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 12),
+            pinImageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -12),
+            pinImageView.widthAnchor.constraint(equalToConstant: 12),
+            pinImageView.heightAnchor.constraint(equalToConstant: 12),
 
             titleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -12),
@@ -104,6 +119,7 @@ final class TrackerCell: UICollectionViewCell {
         emojiLabel.text = tracker.emoji
         titleLabel.text = tracker.name
         counterLabel.text = dayString(for: count)
+        pinImageView.isHidden = !tracker.isPinned
 
         let symbol = isCompleted ? SystemImages.checkmarkSmall : SystemImages.plusSmall
         actionButton.setImage(symbol, for: .normal)

@@ -5,6 +5,11 @@ final class EmptyStateView: UIView {
     private let imageView = UIImageView()
     private let titleLabel = UILabel()
 
+    func configure(image: UIImage?, title: String) {
+        imageView.image = image
+        titleLabel.text = title
+    }
+
     init(image: UIImage?, title: String) {
         super.init(frame: .zero)
         imageView.image = image

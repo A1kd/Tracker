@@ -24,6 +24,7 @@ final class TrackersViewController: UIViewController {
         let sc = UISearchController(searchResultsController: nil)
         sc.searchResultsUpdater = self
         sc.obscuresBackgroundDuringPresentation = false
+        sc.hidesNavigationBarDuringPresentation = false
         sc.searchBar.placeholder = "Поиск"
         sc.searchBar.setValue("Отменить", forKey: "cancelButtonText")
         return sc
@@ -138,6 +139,21 @@ final class TrackersViewController: UIViewController {
     private func reload() {
         let categories = visibleCategories
         let isEmpty = categories.flatMap(\.trackers).isEmpty
+        let hasSearchQuery = !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+        if isEmpty {
+            if hasSearchQuery {
+                emptyStateView.configure(
+                    image: UIImage(resource: .emptySearch),
+                    title: "Ничего не найдено"
+                )
+            } else {
+                emptyStateView.configure(
+                    image: UIImage(resource: .emptyTrackers),
+                    title: "Что будем отслеживать?"
+                )
+            }
+        }
         emptyStateView.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
         collectionView.reloadData()
@@ -270,6 +286,40 @@ extension TrackersViewController: UICollectionViewDataSource, UICollectionViewDe
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
         CGSize(width: collectionView.bounds.width, height: 46)
+    }
+
+    // MARK: Context menu
+
+    func collectionView(_ collectionView: UICollectionView,
+                        contextMenuConfigurationForItemAt indexPath: IndexPath,
+                        point: CGPoint) -> UIContextMenuConfiguration? {
+        let tracker = visibleCategories[indexPath.section].trackers[indexPath.item]
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            let pinTitle = tracker.isPinned ? "Открепить" : "Закрепить"
+            let pin = UIAction(title: pinTitle) { _ in
+                try? self?.trackerStore.togglePinned(trackerId: tracker.id)
+            }
+            let edit = UIAction(title: "Редактировать") { _ in
+                // Редактирование будет в следующем спринте.
+            }
+            let delete = UIAction(title: "Удалить", attributes: .destructive) { _ in
+                self?.confirmDelete(tracker: tracker)
+            }
+            return UIMenu(children: [pin, edit, delete])
+        }
+    }
+
+    private func confirmDelete(tracker: Tracker) {
+        let sheet = UIAlertController(
+            title: "Уверены, что хотите удалить трекер?",
+            message: nil,
+            preferredStyle: .actionSheet
+        )
+        sheet.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+            try? self?.trackerStore.delete(trackerId: tracker.id)
+        })
+        sheet.addAction(UIAlertAction(title: "Отменить", style: .cancel))
+        present(sheet, animated: true)
     }
 
     // MARK: TrackerCellDelegate

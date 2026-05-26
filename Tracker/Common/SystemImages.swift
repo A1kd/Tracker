@@ -9,4 +9,5 @@ enum SystemImages {
     static let chevronRight = UIImage(systemName: "chevron.right")
     static let recordCircleFill = UIImage(systemName: "record.circle.fill")
     static let hareFill = UIImage(systemName: "hare.fill")
+    static let pinFill = UIImage(systemName: "pin.fill")
 }
