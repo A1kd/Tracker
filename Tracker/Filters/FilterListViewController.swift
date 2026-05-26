@@ -62,6 +62,16 @@ final class FilterListViewController: UIViewController {
             tableView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
     }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        AnalyticsService.shared.report(event: .open, screen: .filters)
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        AnalyticsService.shared.report(event: .close, screen: .filters)
+    }
 }
 
 extension FilterListViewController: UITableViewDataSource, UITableViewDelegate {

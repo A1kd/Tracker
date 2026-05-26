@@ -87,6 +87,16 @@ final class StatisticsViewController: UIViewController {
         refresh()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        AnalyticsService.shared.report(event: .open, screen: .statistics)
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        AnalyticsService.shared.report(event: .close, screen: .statistics)
+    }
+
     private func refresh() {
         let stats = calculator.compute()
         bestPeriodCard.configure(value: stats.bestPeriod, title: "Лучший период")
