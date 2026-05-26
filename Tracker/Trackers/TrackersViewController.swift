@@ -20,14 +20,15 @@ final class TrackersViewController: UIViewController {
         return picker
     }()
 
-    private lazy var searchController: UISearchController = {
-        let sc = UISearchController(searchResultsController: nil)
-        sc.searchResultsUpdater = self
-        sc.delegate = self
-        sc.obscuresBackgroundDuringPresentation = false
-        sc.searchBar.placeholder = "Поиск"
-        sc.searchBar.setValue("Отменить", forKey: "cancelButtonText")
-        return sc
+    private lazy var searchBar: UISearchBar = {
+        let sb = UISearchBar()
+        sb.placeholder = "Поиск"
+        sb.searchBarStyle = .minimal
+        sb.searchTextField.font = .systemFont(ofSize: 17)
+        sb.delegate = self
+        sb.setValue("Отменить", forKey: "cancelButtonText")
+        sb.translatesAutoresizingMaskIntoConstraints = false
+        return sb
     }()
 
     private lazy var collectionView: UICollectionView = {
@@ -94,15 +95,18 @@ final class TrackersViewController: UIViewController {
             dateContainer.widthAnchor.constraint(equalToConstant: 140),
         ])
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: dateContainer)
-        navigationItem.searchController = searchController
-        navigationItem.hidesSearchBarWhenScrolling = false
     }
 
     private func setupLayout() {
+        view.addSubview(searchBar)
         view.addSubview(collectionView)
         view.addSubview(emptyStateView)
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+
+            collectionView.topAnchor.constraint(equalTo: searchBar.bottomAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -232,28 +236,29 @@ extension TrackersViewController: TrackerStoreDelegate {
     }
 }
 
-// MARK: - UISearchResultsUpdating
+// MARK: - UISearchBarDelegate
 
-extension TrackersViewController: UISearchResultsUpdating {
-    func updateSearchResults(for searchController: UISearchController) {
-        searchText = searchController.searchBar.text ?? ""
+extension TrackersViewController: UISearchBarDelegate {
+
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        self.searchText = searchText
         reload()
     }
-}
 
-// MARK: - UISearchControllerDelegate
-
-extension TrackersViewController: UISearchControllerDelegate {
-
-    func willDismissSearchController(_ searchController: UISearchController) {
-        navigationItem.largeTitleDisplayMode = .always
+    func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+        searchBar.setShowsCancelButton(true, animated: true)
     }
 
-    func didDismissSearchController(_ searchController: UISearchController) {
-        navigationItem.largeTitleDisplayMode = .always
-        navigationController?.navigationBar.sizeToFit()
-        navigationController?.navigationBar.setNeedsLayout()
-        navigationController?.navigationBar.layoutIfNeeded()
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.text = ""
+        searchBar.resignFirstResponder()
+        searchBar.setShowsCancelButton(false, animated: true)
+        searchText = ""
+        reload()
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
     }
 }
 
