@@ -76,7 +76,7 @@ final class CategoryListViewController: UIViewController {
             container.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
             container.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             container.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            container.bottomAnchor.constraint(lessThanOrEqualTo: addButton.topAnchor, constant: -16),
+            container.bottomAnchor.constraint(equalTo: addButton.topAnchor, constant: -16),
 
             tableView.topAnchor.constraint(equalTo: container.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
