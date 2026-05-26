@@ -20,13 +20,15 @@ final class TrackersViewController: UIViewController {
         return picker
     }()
 
-    private lazy var searchController: UISearchController = {
-        let sc = UISearchController(searchResultsController: nil)
-        sc.searchResultsUpdater = self
-        sc.obscuresBackgroundDuringPresentation = false
-        sc.searchBar.placeholder = "Поиск"
-        sc.searchBar.setValue("Отменить", forKey: "cancelButtonText")
-        return sc
+    private lazy var searchBar: UISearchBar = {
+        let sb = UISearchBar()
+        sb.placeholder = "Поиск"
+        sb.searchBarStyle = .minimal
+        sb.searchTextField.font = .systemFont(ofSize: 17)
+        sb.delegate = self
+        sb.setValue("Отменить", forKey: "cancelButtonText")
+        sb.translatesAutoresizingMaskIntoConstraints = false
+        return sb
     }()
 
     private lazy var collectionView: UICollectionView = {
@@ -51,7 +53,7 @@ final class TrackersViewController: UIViewController {
 
     private lazy var emptyStateView: EmptyStateView = {
         let view = EmptyStateView(
-            image: UIImage(named: "EmptyTrackers"),
+            image: UIImage(resource: .emptyTrackers),
             title: "Что будем отслеживать?"
         )
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -73,7 +75,7 @@ final class TrackersViewController: UIViewController {
         navigationItem.largeTitleDisplayMode = .always
 
         let plusButton = UIBarButtonItem(
-            image: UIImage(systemName: "plus", withConfiguration: UIImage.SymbolConfiguration(weight: .bold)),
+            image: SystemImages.plusBold,
             style: .plain,
             target: self,
             action: #selector(plusTapped)
@@ -93,15 +95,18 @@ final class TrackersViewController: UIViewController {
             dateContainer.widthAnchor.constraint(equalToConstant: 140),
         ])
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: dateContainer)
-        navigationItem.searchController = searchController
-        navigationItem.hidesSearchBarWhenScrolling = false
     }
 
     private func setupLayout() {
+        view.addSubview(searchBar)
         view.addSubview(collectionView)
         view.addSubview(emptyStateView)
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+
+            collectionView.topAnchor.constraint(equalTo: searchBar.bottomAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -138,6 +143,21 @@ final class TrackersViewController: UIViewController {
     private func reload() {
         let categories = visibleCategories
         let isEmpty = categories.flatMap(\.trackers).isEmpty
+        let hasSearchQuery = !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+        if isEmpty {
+            if hasSearchQuery {
+                emptyStateView.configure(
+                    image: UIImage(resource: .emptySearch),
+                    title: "Ничего не найдено"
+                )
+            } else {
+                emptyStateView.configure(
+                    image: UIImage(resource: .emptyTrackers),
+                    title: "Что будем отслеживать?"
+                )
+            }
+        }
         emptyStateView.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
         collectionView.reloadData()
@@ -216,12 +236,29 @@ extension TrackersViewController: TrackerStoreDelegate {
     }
 }
 
-// MARK: - UISearchResultsUpdating
+// MARK: - UISearchBarDelegate
 
-extension TrackersViewController: UISearchResultsUpdating {
-    func updateSearchResults(for searchController: UISearchController) {
-        searchText = searchController.searchBar.text ?? ""
+extension TrackersViewController: UISearchBarDelegate {
+
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        self.searchText = searchText
         reload()
+    }
+
+    func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+        searchBar.setShowsCancelButton(true, animated: true)
+    }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.text = ""
+        searchBar.resignFirstResponder()
+        searchBar.setShowsCancelButton(false, animated: true)
+        searchText = ""
+        reload()
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
     }
 }
 
@@ -270,6 +307,40 @@ extension TrackersViewController: UICollectionViewDataSource, UICollectionViewDe
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
         CGSize(width: collectionView.bounds.width, height: 46)
+    }
+
+    // MARK: Context menu
+
+    func collectionView(_ collectionView: UICollectionView,
+                        contextMenuConfigurationForItemAt indexPath: IndexPath,
+                        point: CGPoint) -> UIContextMenuConfiguration? {
+        let tracker = visibleCategories[indexPath.section].trackers[indexPath.item]
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            let pinTitle = tracker.isPinned ? "Открепить" : "Закрепить"
+            let pin = UIAction(title: pinTitle) { _ in
+                try? self?.trackerStore.togglePinned(trackerId: tracker.id)
+            }
+            let edit = UIAction(title: "Редактировать") { _ in
+                // Редактирование будет в следующем спринте.
+            }
+            let delete = UIAction(title: "Удалить", attributes: .destructive) { _ in
+                self?.confirmDelete(tracker: tracker)
+            }
+            return UIMenu(children: [pin, edit, delete])
+        }
+    }
+
+    private func confirmDelete(tracker: Tracker) {
+        let sheet = UIAlertController(
+            title: "Уверены, что хотите удалить трекер?",
+            message: nil,
+            preferredStyle: .actionSheet
+        )
+        sheet.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+            try? self?.trackerStore.delete(trackerId: tracker.id)
+        })
+        sheet.addAction(UIAlertAction(title: "Отменить", style: .cancel))
+        present(sheet, animated: true)
     }
 
     // MARK: TrackerCellDelegate

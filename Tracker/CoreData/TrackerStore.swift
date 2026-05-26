@@ -7,6 +7,8 @@ protocol TrackerStoreDelegate: AnyObject {
 
 final class TrackerStore: NSObject {
 
+    static let pinnedCategoryTitle = "Закреплённые"
+
     private let context: NSManagedObjectContext
     private let categoryStore: TrackerCategoryStore
     weak var delegate: TrackerStoreDelegate?
@@ -20,7 +22,7 @@ final class TrackerStore: NSObject {
         let frc = NSFetchedResultsController(
             fetchRequest: request,
             managedObjectContext: context,
-            sectionNameKeyPath: "category.title",
+            sectionNameKeyPath: nil,
             cacheName: nil
         )
         frc.delegate = self
@@ -48,17 +50,50 @@ final class TrackerStore: NSObject {
         entity.colorHex = tracker.color.toHexString()
         entity.emoji = tracker.emoji
         entity.schedule = serializeSchedule(tracker.schedule)
+        entity.isPinned = tracker.isPinned
         entity.category = category
         try context.save()
         return entity
     }
 
+    func togglePinned(trackerId: UUID) throws {
+        guard let entity = try fetchTracker(id: trackerId) else { return }
+        entity.isPinned.toggle()
+        try context.save()
+    }
+
+    func delete(trackerId: UUID) throws {
+        guard let entity = try fetchTracker(id: trackerId) else { return }
+        context.delete(entity)
+        try context.save()
+    }
+
     func categories() -> [TrackerCategory] {
-        let sections = fetchedResultsController.sections ?? []
-        return sections.map { section in
-            let trackers = (section.objects as? [TrackerCoreData] ?? []).compactMap(toStruct)
-            return TrackerCategory(title: section.name, trackers: trackers)
+        let request = TrackerCoreData.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
+        let entities = (try? context.fetch(request)) ?? []
+
+        let pinnedTrackers = entities.filter { $0.isPinned }.compactMap(toStruct)
+        let pinnedCategory = pinnedTrackers.isEmpty
+            ? nil
+            : TrackerCategory(title: Self.pinnedCategoryTitle, trackers: pinnedTrackers)
+
+        var grouped: [String: [Tracker]] = [:]
+        for entity in entities where !entity.isPinned {
+            guard let title = entity.category?.title, let tracker = toStruct(entity) else { continue }
+            grouped[title, default: []].append(tracker)
         }
+        let regular = grouped.sorted { $0.key < $1.key }
+            .map { TrackerCategory(title: $0.key, trackers: $0.value) }
+
+        return ([pinnedCategory].compactMap { $0 }) + regular
+    }
+
+    private func fetchTracker(id: UUID) throws -> TrackerCoreData? {
+        let request = TrackerCoreData.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        request.fetchLimit = 1
+        return try context.fetch(request).first
     }
 
     private func serializeSchedule(_ schedule: [WeekDay]) -> String {
@@ -83,7 +118,8 @@ final class TrackerStore: NSObject {
             name: name,
             color: UIColor(hex: colorHex),
             emoji: emoji,
-            schedule: deserializeSchedule(entity.schedule ?? "")
+            schedule: deserializeSchedule(entity.schedule ?? ""),
+            isPinned: entity.isPinned
         )
     }
 }

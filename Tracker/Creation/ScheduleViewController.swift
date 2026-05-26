@@ -132,7 +132,8 @@ final class ScheduleDayCell: UITableViewCell {
         ])
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func configure(title: String, isOn: Bool, isLast: Bool) {
         titleLabel.text = title

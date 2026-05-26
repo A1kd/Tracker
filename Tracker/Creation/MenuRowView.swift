@@ -17,7 +17,7 @@ final class MenuRowView: UIControl {
     }()
 
     private let chevronImageView: UIImageView = {
-        let iv = UIImageView(image: UIImage(systemName: "chevron.right"))
+        let iv = UIImageView(image: SystemImages.chevronRight)
         iv.tintColor = .ypGray
         iv.contentMode = .scaleAspectFit
         return iv
@@ -55,7 +55,8 @@ final class MenuRowView: UIControl {
         ])
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func setSubtitle(_ text: String?) {
         if let text, !text.isEmpty {

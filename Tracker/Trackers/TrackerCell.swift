@@ -33,6 +33,15 @@ final class TrackerCell: UICollectionViewCell {
         return l
     }()
 
+    private let pinImageView: UIImageView = {
+        let iv = UIImageView(image: SystemImages.pinFill)
+        iv.tintColor = .white
+        iv.contentMode = .scaleAspectFit
+        iv.isHidden = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
     private let titleLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 12, weight: .medium)
@@ -64,6 +73,7 @@ final class TrackerCell: UICollectionViewCell {
         contentView.addSubview(cardView)
         cardView.addSubview(emojiBackground)
         emojiBackground.addSubview(emojiLabel)
+        cardView.addSubview(pinImageView)
         cardView.addSubview(titleLabel)
         contentView.addSubview(counterLabel)
         contentView.addSubview(actionButton)
@@ -82,6 +92,11 @@ final class TrackerCell: UICollectionViewCell {
             emojiLabel.centerXAnchor.constraint(equalTo: emojiBackground.centerXAnchor),
             emojiLabel.centerYAnchor.constraint(equalTo: emojiBackground.centerYAnchor),
 
+            pinImageView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 12),
+            pinImageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -12),
+            pinImageView.widthAnchor.constraint(equalToConstant: 12),
+            pinImageView.heightAnchor.constraint(equalToConstant: 12),
+
             titleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -12),
             titleLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -12),
@@ -96,17 +111,18 @@ final class TrackerCell: UICollectionViewCell {
         ])
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func configure(with tracker: Tracker, isCompleted: Bool, count: Int) {
         cardView.backgroundColor = tracker.color
         emojiLabel.text = tracker.emoji
         titleLabel.text = tracker.name
         counterLabel.text = dayString(for: count)
+        pinImageView.isHidden = !tracker.isPinned
 
-        let symbolName = isCompleted ? "checkmark" : "plus"
-        let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .bold)
-        actionButton.setImage(UIImage(systemName: symbolName, withConfiguration: config), for: .normal)
+        let symbol = isCompleted ? SystemImages.checkmarkSmall : SystemImages.plusSmall
+        actionButton.setImage(symbol, for: .normal)
         actionButton.backgroundColor = isCompleted
             ? tracker.color.withAlphaComponent(0.3)
             : tracker.color
