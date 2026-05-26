@@ -1,8 +1,6 @@
 import Foundation
+import AppMetricaCore
 
-/// Placeholder backend until AppMetrica SDK is wired in via SPM.
-/// When AppMetrica is added, replace the body with `AppMetrica.activate(with:)`
-/// and `AppMetrica.reportEvent(name:parameters:)` calls.
 final class AnalyticsBackend {
 
     static let shared = AnalyticsBackend()
@@ -12,14 +10,17 @@ final class AnalyticsBackend {
     private init() {}
 
     func activate(apiKey: String) {
+        guard !activated else { return }
+        guard let config = AppMetricaConfiguration(apiKey: apiKey) else {
+            assertionFailure("Invalid AppMetrica apiKey")
+            return
+        }
+        AppMetrica.activate(with: config)
         activated = true
-        #if DEBUG
-        print("[Analytics] activated with key prefix \(apiKey.prefix(4))…")
-        #endif
     }
 
     func report(event: String, parameters: [String: Any]) {
         guard activated else { return }
-        // No-op until SDK is hooked up.
+        AppMetrica.reportEvent(name: event, parameters: parameters)
     }
 }
