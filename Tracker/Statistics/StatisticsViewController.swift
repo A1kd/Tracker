@@ -28,7 +28,7 @@ final class StatisticsViewController: UIViewController {
 
     private lazy var emptyStateView: EmptyStateView = {
         let v = EmptyStateView(
-            image: UIImage(resource: .emptyTrackers),
+            image: UIImage(resource: .emptyStatistics),
             title: "Анализировать пока нечего"
         )
         v.translatesAutoresizingMaskIntoConstraints = false
