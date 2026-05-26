@@ -30,7 +30,9 @@ final class TrackerCategoryStore: NSObject {
     }
 
     func fetchAllTitles() -> [String] {
-        (fetchedResultsController.fetchedObjects ?? []).compactMap(\.title)
+        let request = TrackerCategoryCoreData.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        return ((try? context.fetch(request)) ?? []).compactMap(\.title)
     }
 
     @discardableResult
