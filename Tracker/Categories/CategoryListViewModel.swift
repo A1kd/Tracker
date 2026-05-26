@@ -42,6 +42,27 @@ final class CategoryListViewModel {
         reload()
     }
 
+    func renameCategory(at index: Int, to newTitle: String) {
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, items.indices.contains(index) else { return }
+        let oldTitle = items[index].title
+        try? store.renameCategory(oldTitle: oldTitle, newTitle: trimmed)
+        if selectedTitle == oldTitle {
+            selectedTitle = trimmed
+        }
+        reload()
+    }
+
+    func deleteCategory(at index: Int) {
+        guard items.indices.contains(index) else { return }
+        let title = items[index].title
+        try? store.deleteCategory(title: title)
+        if selectedTitle == title {
+            selectedTitle = nil
+        }
+        reload()
+    }
+
     func reloadFromStore() {
         reload()
     }

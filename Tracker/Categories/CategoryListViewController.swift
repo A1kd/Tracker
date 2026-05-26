@@ -19,7 +19,10 @@ final class CategoryListViewController: UIViewController {
         t.backgroundColor = .clear
         t.separatorColor = .ypGray.withAlphaComponent(0.3)
         t.separatorInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
+        t.tableHeaderView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNormalMagnitude))
         t.tableFooterView = UIView()
+        t.sectionHeaderTopPadding = 0
+        t.contentInsetAdjustmentBehavior = .never
         t.rowHeight = 75
         t.dataSource = self
         t.delegate = self
@@ -144,5 +147,60 @@ extension CategoryListViewController: UITableViewDataSource, UITableViewDelegate
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         viewModel.selectRow(at: indexPath.row)
+    }
+
+    func tableView(_ tableView: UITableView,
+                   contextMenuConfigurationForRowAt indexPath: IndexPath,
+                   point: CGPoint) -> UIContextMenuConfiguration? {
+        UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            guard let self else { return nil }
+            let edit = UIAction(title: "Редактировать") { [weak self] _ in
+                self?.showEditAlert(for: indexPath.row)
+            }
+            let delete = UIAction(title: "Удалить", attributes: .destructive) { [weak self] _ in
+                self?.showDeleteAlert(for: indexPath.row)
+            }
+            return UIMenu(children: [edit, delete])
+        }
+    }
+}
+
+// MARK: - Edit / Delete prompts
+
+private extension CategoryListViewController {
+
+    func showEditAlert(for index: Int) {
+        guard index < viewModel.numberOfRows else { return }
+        let currentTitle = viewModel.item(at: index).title
+        let alert = UIAlertController(
+            title: "Редактирование категории",
+            message: nil,
+            preferredStyle: .alert
+        )
+        alert.addTextField { field in
+            field.text = currentTitle
+            field.clearButtonMode = .whileEditing
+        }
+        alert.addAction(UIAlertAction(title: "Отменить", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Готово", style: .default) { [weak self, weak alert] _ in
+            guard let self else { return }
+            let newTitle = alert?.textFields?.first?.text ?? ""
+            self.viewModel.renameCategory(at: index, to: newTitle)
+        })
+        present(alert, animated: true)
+    }
+
+    func showDeleteAlert(for index: Int) {
+        guard index < viewModel.numberOfRows else { return }
+        let sheet = UIAlertController(
+            title: "Эта категория точно не нужна?",
+            message: nil,
+            preferredStyle: .actionSheet
+        )
+        sheet.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+            self?.viewModel.deleteCategory(at: index)
+        })
+        sheet.addAction(UIAlertAction(title: "Отменить", style: .cancel))
+        present(sheet, animated: true)
     }
 }

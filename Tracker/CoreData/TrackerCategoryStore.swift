@@ -53,6 +53,21 @@ final class TrackerCategoryStore: NSObject {
         try context.save()
     }
 
+    func renameCategory(oldTitle: String, newTitle: String) throws {
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != oldTitle else { return }
+        guard findCategory(by: trimmed) == nil else { return }
+        guard let entity = findCategory(by: oldTitle) else { return }
+        entity.title = trimmed
+        try context.save()
+    }
+
+    func deleteCategory(title: String) throws {
+        guard let entity = findCategory(by: title) else { return }
+        context.delete(entity)
+        try context.save()
+    }
+
     private func findCategory(by title: String) -> TrackerCategoryCoreData? {
         let request = TrackerCategoryCoreData.fetchRequest()
         request.predicate = NSPredicate(format: "title == %@", title)
