@@ -200,11 +200,12 @@
 				};
 			};
 			buildConfigurationList = 0837C95B2FC1AAD30021E934 /* Build configuration list for PBXProject "Tracker" */;
-			developmentRegion = en;
+			developmentRegion = ru;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				ru,
 			);
 			mainGroup = 0837C9572FC1AAD30021E934;
 			minimizedProjectReferenceProxies = 1;

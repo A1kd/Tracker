@@ -62,6 +62,24 @@ final class TrackerStore: NSObject {
         try context.save()
     }
 
+    func fetchAllTrackers() -> [Tracker] {
+        let request = TrackerCoreData.fetchRequest()
+        let entities = (try? context.fetch(request)) ?? []
+        return entities.compactMap(toStruct)
+    }
+
+    func update(_ tracker: Tracker, categoryTitle: String) throws {
+        guard let entity = try fetchTracker(id: tracker.id) else { return }
+        let category = try categoryStore.ensureCategory(title: categoryTitle)
+        entity.name = tracker.name
+        entity.colorHex = tracker.color.toHexString()
+        entity.emoji = tracker.emoji
+        entity.schedule = serializeSchedule(tracker.schedule)
+        entity.isPinned = tracker.isPinned
+        entity.category = category
+        try context.save()
+    }
+
     func delete(trackerId: UUID) throws {
         guard let entity = try fetchTracker(id: trackerId) else { return }
         context.delete(entity)

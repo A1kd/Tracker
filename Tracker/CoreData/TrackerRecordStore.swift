@@ -47,6 +47,20 @@ final class TrackerRecordStore {
         return try context.count(for: request) > 0
     }
 
+    func totalCount() throws -> Int {
+        let request = TrackerRecordCoreData.fetchRequest()
+        return try context.count(for: request)
+    }
+
+    func fetchAll() throws -> [TrackerRecord] {
+        let request = TrackerRecordCoreData.fetchRequest()
+        let entities = try context.fetch(request)
+        return entities.compactMap { entity in
+            guard let id = entity.trackerId, let date = entity.date else { return nil }
+            return TrackerRecord(trackerId: id, date: date)
+        }
+    }
+
     func count(forTrackerId trackerId: UUID) throws -> Int {
         let request = TrackerRecordCoreData.fetchRequest()
         request.predicate = NSPredicate(format: "trackerId == %@", trackerId as CVarArg)
