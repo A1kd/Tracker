@@ -23,8 +23,8 @@ final class TrackersViewController: UIViewController {
     private lazy var searchController: UISearchController = {
         let sc = UISearchController(searchResultsController: nil)
         sc.searchResultsUpdater = self
+        sc.delegate = self
         sc.obscuresBackgroundDuringPresentation = false
-        sc.hidesNavigationBarDuringPresentation = false
         sc.searchBar.placeholder = "Поиск"
         sc.searchBar.setValue("Отменить", forKey: "cancelButtonText")
         return sc
@@ -238,6 +238,22 @@ extension TrackersViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
         searchText = searchController.searchBar.text ?? ""
         reload()
+    }
+}
+
+// MARK: - UISearchControllerDelegate
+
+extension TrackersViewController: UISearchControllerDelegate {
+
+    func willDismissSearchController(_ searchController: UISearchController) {
+        navigationItem.largeTitleDisplayMode = .always
+    }
+
+    func didDismissSearchController(_ searchController: UISearchController) {
+        navigationItem.largeTitleDisplayMode = .always
+        navigationController?.navigationBar.sizeToFit()
+        navigationController?.navigationBar.setNeedsLayout()
+        navigationController?.navigationBar.layoutIfNeeded()
     }
 }
 
