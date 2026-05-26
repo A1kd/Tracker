@@ -36,7 +36,8 @@ final class TrackerFormSectionHeader: UICollectionReusableView {
         ])
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 }
 
 // MARK: - TextField cell
@@ -83,7 +84,8 @@ final class TrackerNameCell: UICollectionViewCell {
         ])
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func setError(_ visible: Bool) {
         errorLabel.isHidden = !visible
@@ -160,7 +162,8 @@ final class MenuCell: UICollectionViewCell {
         scheduleRow.addTarget(self, action: #selector(scheduleTapped), for: .touchUpInside)
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func showSchedule(_ show: Bool) {
         scheduleRow.isHidden = !show
@@ -210,7 +213,8 @@ final class EmojiCell: UICollectionViewCell {
         ])
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func configure(emoji: String, selected: Bool) {
         emojiLabel.text = emoji
@@ -244,7 +248,8 @@ final class ColorCell: UICollectionViewCell {
         ])
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func configure(color: UIColor, selected: Bool) {
         colorView.backgroundColor = color

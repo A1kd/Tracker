@@ -20,12 +20,12 @@ final class OnboardingPageViewController: UIPageViewController {
     init() {
         let page1 = OnboardingContentViewController(
             pageIndex: 0,
-            image: UIImage(named: "OnboardingBg1"),
+            image: UIImage(resource: .onboardingBg1),
             title: "Отслеживайте только то, что хотите"
         )
         let page2 = OnboardingContentViewController(
             pageIndex: 1,
-            image: UIImage(named: "OnboardingBg2"),
+            image: UIImage(resource: .onboardingBg2),
             title: "Даже если это\nне литры воды и йога"
         )
         self.pages = [page1, page2]
@@ -34,7 +34,8 @@ final class OnboardingPageViewController: UIPageViewController {
         page2.onDone = { [weak self] in self?.onFinish?() }
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     override func viewDidLoad() {
         super.viewDidLoad()

@@ -34,5 +34,6 @@ final class EmptyStateView: UIView {
         ])
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 }

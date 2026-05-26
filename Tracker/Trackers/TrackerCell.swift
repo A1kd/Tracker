@@ -96,7 +96,8 @@ final class TrackerCell: UICollectionViewCell {
         ])
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func configure(with tracker: Tracker, isCompleted: Bool, count: Int) {
         cardView.backgroundColor = tracker.color
@@ -104,9 +105,8 @@ final class TrackerCell: UICollectionViewCell {
         titleLabel.text = tracker.name
         counterLabel.text = dayString(for: count)
 
-        let symbolName = isCompleted ? "checkmark" : "plus"
-        let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .bold)
-        actionButton.setImage(UIImage(systemName: symbolName, withConfiguration: config), for: .normal)
+        let symbol = isCompleted ? SystemImages.checkmarkSmall : SystemImages.plusSmall
+        actionButton.setImage(symbol, for: .normal)
         actionButton.backgroundColor = isCompleted
             ? tracker.color.withAlphaComponent(0.3)
             : tracker.color

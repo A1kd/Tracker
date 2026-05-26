@@ -39,6 +39,11 @@ final class CategoryListViewModel {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         try? store.addCategory(title: trimmed)
+        reload()
+    }
+
+    func reloadFromStore() {
+        reload()
     }
 
     private func reload() {

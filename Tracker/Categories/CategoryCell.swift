@@ -13,7 +13,7 @@ final class CategoryCell: UITableViewCell {
     }()
 
     private let checkmarkImageView: UIImageView = {
-        let iv = UIImageView(image: UIImage(systemName: "checkmark"))
+        let iv = UIImageView(image: SystemImages.checkmark)
         iv.tintColor = .ypBlue
         iv.contentMode = .scaleAspectFit
         iv.isHidden = true
@@ -42,7 +42,8 @@ final class CategoryCell: UITableViewCell {
         ])
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func configure(with item: CategoryListItem) {
         titleLabel.text = item.title

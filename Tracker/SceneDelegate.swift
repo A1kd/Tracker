@@ -1,9 +1,7 @@
 import UIKit
 
-class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
-
-    private let onboardingDefaultsKey = "onboardingCompleted"
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
@@ -14,7 +12,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     private func makeRootViewController() -> UIViewController {
-        if UserDefaults.standard.bool(forKey: onboardingDefaultsKey) {
+        if UserDefaultsService.shared.isOnboardingCompleted {
             return MainTabBarController()
         }
         let onboarding = OnboardingPageViewController()
@@ -25,7 +23,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     private func completeOnboarding() {
-        UserDefaults.standard.set(true, forKey: onboardingDefaultsKey)
+        UserDefaultsService.shared.isOnboardingCompleted = true
         guard let window else { return }
         let main = MainTabBarController()
         UIView.transition(with: window, duration: 0.35, options: .transitionCrossDissolve) {

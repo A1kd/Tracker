@@ -42,7 +42,7 @@ final class CategoryListViewController: UIViewController {
 
     private lazy var emptyStateView: EmptyStateView = {
         let v = EmptyStateView(
-            image: UIImage(named: "EmptyTrackers"),
+            image: UIImage(resource: .emptyTrackers),
             title: "Привычки и события можно\nобъединить по смыслу"
         )
         v.translatesAutoresizingMaskIntoConstraints = false
@@ -54,7 +54,13 @@ final class CategoryListViewController: UIViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        viewModel.reloadFromStore()
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()

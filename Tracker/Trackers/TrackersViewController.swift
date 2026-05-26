@@ -51,7 +51,7 @@ final class TrackersViewController: UIViewController {
 
     private lazy var emptyStateView: EmptyStateView = {
         let view = EmptyStateView(
-            image: UIImage(named: "EmptyTrackers"),
+            image: UIImage(resource: .emptyTrackers),
             title: "Что будем отслеживать?"
         )
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -73,7 +73,7 @@ final class TrackersViewController: UIViewController {
         navigationItem.largeTitleDisplayMode = .always
 
         let plusButton = UIBarButtonItem(
-            image: UIImage(systemName: "plus", withConfiguration: UIImage.SymbolConfiguration(weight: .bold)),
+            image: SystemImages.plusBold,
             style: .plain,
             target: self,
             action: #selector(plusTapped)

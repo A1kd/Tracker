@@ -42,7 +42,8 @@ final class OnboardingContentViewController: UIViewController {
         titleLabel.text = title
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     override func viewDidLoad() {
         super.viewDidLoad()
