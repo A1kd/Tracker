@@ -1,0 +1,59 @@
+{
+  "sourceLanguage" : "ru",
+  "strings" : {
+    "Trackers.tab" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Trackers" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Трекеры" } }
+      }
+    },
+    "Statistics.tab" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Statistics" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Статистика" } }
+      }
+    },
+    "Filters.button" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Filters" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Фильтры" } }
+      }
+    },
+    "Search.placeholder" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Search" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Поиск" } }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Отменить" } }
+      }
+    },
+    "Days.count" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one"   : { "stringUnit" : { "state" : "translated", "value" : "%d day" } },
+              "other" : { "stringUnit" : { "state" : "translated", "value" : "%d days" } }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one"   : { "stringUnit" : { "state" : "translated", "value" : "%d день" } },
+              "few"   : { "stringUnit" : { "state" : "translated", "value" : "%d дня" } },
+              "many"  : { "stringUnit" : { "state" : "translated", "value" : "%d дней" } },
+              "other" : { "stringUnit" : { "state" : "translated", "value" : "%d дней" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

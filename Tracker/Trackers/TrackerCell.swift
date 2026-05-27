@@ -129,12 +129,7 @@ final class TrackerCell: UICollectionViewCell {
     }
 
     private func dayString(for count: Int) -> String {
-        let mod100 = count % 100
-        let mod10 = count % 10
-        if mod100 >= 11 && mod100 <= 14 { return "\(count) дней" }
-        if mod10 == 1 { return "\(count) день" }
-        if mod10 >= 2 && mod10 <= 4 { return "\(count) дня" }
-        return "\(count) дней"
+        L10n.days(count)
     }
 
     @objc private func actionTapped() {

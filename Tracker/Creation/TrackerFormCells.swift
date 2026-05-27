@@ -67,12 +67,31 @@ final class TrackerNameCell: UICollectionViewCell {
         return l
     }()
 
+    let counterLabel: UILabel = {
+        let l = UILabel()
+        l.font = .systemFont(ofSize: 32, weight: .bold)
+        l.textColor = .ypBlackDay
+        l.textAlignment = .center
+        l.isHidden = true
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    private var textFieldTopToTop: NSLayoutConstraint?
+    private var textFieldTopToCounter: NSLayoutConstraint?
+
     override init(frame: CGRect) {
         super.init(frame: frame)
+        contentView.addSubview(counterLabel)
         contentView.addSubview(textField)
         contentView.addSubview(errorLabel)
+        textFieldTopToTop = textField.topAnchor.constraint(equalTo: contentView.topAnchor)
+        textFieldTopToCounter = textField.topAnchor.constraint(equalTo: counterLabel.bottomAnchor, constant: 24)
+        textFieldTopToTop?.isActive = true
         NSLayoutConstraint.activate([
-            textField.topAnchor.constraint(equalTo: contentView.topAnchor),
+            counterLabel.topAnchor.constraint(equalTo: contentView.topAnchor),
+            counterLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+
             textField.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             textField.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             textField.heightAnchor.constraint(equalToConstant: 75),
@@ -89,6 +108,19 @@ final class TrackerNameCell: UICollectionViewCell {
 
     func setError(_ visible: Bool) {
         errorLabel.isHidden = !visible
+    }
+
+    func setCounter(_ text: String?) {
+        if let text {
+            counterLabel.text = text
+            counterLabel.isHidden = false
+            textFieldTopToTop?.isActive = false
+            textFieldTopToCounter?.isActive = true
+        } else {
+            counterLabel.isHidden = true
+            textFieldTopToCounter?.isActive = false
+            textFieldTopToTop?.isActive = true
+        }
     }
 }
 

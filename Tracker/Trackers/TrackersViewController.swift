@@ -22,11 +22,11 @@ final class TrackersViewController: UIViewController {
 
     private lazy var searchBar: UISearchBar = {
         let sb = UISearchBar()
-        sb.placeholder = "Поиск"
+        sb.placeholder = L10n.searchPlaceholder
         sb.searchBarStyle = .minimal
         sb.searchTextField.font = .systemFont(ofSize: 17)
         sb.delegate = self
-        sb.setValue("Отменить", forKey: "cancelButtonText")
+        sb.setValue(L10n.cancel, forKey: "cancelButtonText")
         sb.translatesAutoresizingMaskIntoConstraints = false
         return sb
     }()
@@ -51,6 +51,23 @@ final class TrackersViewController: UIViewController {
         return cv
     }()
 
+    private lazy var filtersButton: UIButton = {
+        let b = UIButton(type: .system)
+        b.setTitle(L10n.filtersButton, for: .normal)
+        b.titleLabel?.font = .systemFont(ofSize: 17, weight: .regular)
+        b.backgroundColor = .ypBlue
+        b.layer.cornerRadius = 16
+        b.translatesAutoresizingMaskIntoConstraints = false
+        b.addTarget(self, action: #selector(filtersTapped), for: .touchUpInside)
+        applyFiltersButtonStyle(b)
+        return b
+    }()
+
+    private func applyFiltersButtonStyle(_ button: UIButton) {
+        let isActive = UserDefaultsService.shared.currentFilter.isActive
+        button.setTitleColor(isActive ? .ypRed : .white, for: .normal)
+    }
+
     private lazy var emptyStateView: EmptyStateView = {
         let view = EmptyStateView(
             image: UIImage(resource: .emptyTrackers),
@@ -69,8 +86,18 @@ final class TrackersViewController: UIViewController {
         reload()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        AnalyticsService.shared.report(event: .open, screen: .main)
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        AnalyticsService.shared.report(event: .close, screen: .main)
+    }
+
     private func setupNavBar() {
-        navigationItem.title = "Трекеры"
+        navigationItem.title = L10n.trackersTab
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
 
@@ -101,6 +128,7 @@ final class TrackersViewController: UIViewController {
         view.addSubview(searchBar)
         view.addSubview(collectionView)
         view.addSubview(emptyStateView)
+        view.addSubview(filtersButton)
         NSLayoutConstraint.activate([
             searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
@@ -115,7 +143,14 @@ final class TrackersViewController: UIViewController {
             emptyStateView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             emptyStateView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 16),
             emptyStateView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -16),
+
+            filtersButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            filtersButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            filtersButton.widthAnchor.constraint(equalToConstant: 114),
+            filtersButton.heightAnchor.constraint(equalToConstant: 50),
         ])
+        collectionView.contentInset.bottom = 82
+        collectionView.verticalScrollIndicatorInsets.bottom = 82
     }
 
     // MARK: - Data
@@ -123,6 +158,7 @@ final class TrackersViewController: UIViewController {
     private var visibleCategories: [TrackerCategory] {
         let day = WeekDay.from(date: currentDate)
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let filter = UserDefaultsService.shared.currentFilter
 
         return trackerStore.categories().compactMap { category in
             let trackers = category.trackers.filter { tracker in
@@ -133,10 +169,28 @@ final class TrackersViewController: UIViewController {
                     scheduleMatch = tracker.schedule.contains(day)
                 }
                 let searchMatch = query.isEmpty || tracker.name.lowercased().contains(query)
-                return scheduleMatch && searchMatch
+                guard scheduleMatch && searchMatch else { return false }
+
+                switch filter {
+                case .all, .today:
+                    return true
+                case .completed:
+                    return (try? recordStore.hasRecord(trackerId: tracker.id, on: currentDate)) ?? false
+                case .incomplete:
+                    return !((try? recordStore.hasRecord(trackerId: tracker.id, on: currentDate)) ?? false)
+                }
             }
             guard !trackers.isEmpty else { return nil }
             return TrackerCategory(title: category.title, trackers: trackers)
+        }
+    }
+
+    private var hasTrackersForCurrentDay: Bool {
+        let day = WeekDay.from(date: currentDate)
+        return trackerStore.categories().contains { category in
+            category.trackers.contains { tracker in
+                tracker.schedule.isEmpty || tracker.schedule.contains(day)
+            }
         }
     }
 
@@ -161,6 +215,7 @@ final class TrackersViewController: UIViewController {
         emptyStateView.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
         collectionView.reloadData()
+        filtersButton.isHidden = !hasTrackersForCurrentDay
     }
 
     private func isTrackerCompletedToday(_ tracker: Tracker) -> Bool {
@@ -174,6 +229,7 @@ final class TrackersViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func plusTapped() {
+        AnalyticsService.shared.report(event: .click, screen: .main, item: .addTrack)
         let typeVC = TrackerTypeSelectionViewController()
         typeVC.onSelect = { [weak self] type in
             self?.dismiss(animated: true) {
@@ -224,6 +280,27 @@ final class TrackersViewController: UIViewController {
 
     @objc private func dateChanged(_ sender: UIDatePicker) {
         currentDate = Calendar.iso8601Ru.startOfDay(for: sender.date)
+        reload()
+    }
+
+    @objc private func filtersTapped() {
+        AnalyticsService.shared.report(event: .click, screen: .main, item: .filter)
+        let vc = FilterListViewController(currentFilter: UserDefaultsService.shared.currentFilter)
+        vc.onSelect = { [weak self] filter in
+            self?.applyFilter(filter)
+        }
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        present(nav, animated: true)
+    }
+
+    private func applyFilter(_ filter: TrackerFilter) {
+        UserDefaultsService.shared.currentFilter = filter
+        if filter == .today {
+            currentDate = Calendar.iso8601Ru.startOfDay(for: Date())
+            datePicker.date = currentDate
+        }
+        applyFiltersButtonStyle(filtersButton)
         reload()
     }
 }
@@ -321,13 +398,41 @@ extension TrackersViewController: UICollectionViewDataSource, UICollectionViewDe
                 try? self?.trackerStore.togglePinned(trackerId: tracker.id)
             }
             let edit = UIAction(title: "Редактировать") { _ in
-                // Редактирование будет в следующем спринте.
+                AnalyticsService.shared.report(event: .click, screen: .main, item: .edit)
+                self?.presentEdit(for: tracker)
             }
             let delete = UIAction(title: "Удалить", attributes: .destructive) { _ in
+                AnalyticsService.shared.report(event: .click, screen: .main, item: .delete)
                 self?.confirmDelete(tracker: tracker)
             }
             return UIMenu(children: [pin, edit, delete])
         }
+    }
+
+    private func currentCategory(for tracker: Tracker) -> String {
+        for category in trackerStore.categories() {
+            if category.title == TrackerStore.pinnedCategoryTitle { continue }
+            if category.trackers.contains(where: { $0.id == tracker.id }) {
+                return category.title
+            }
+        }
+        return "Важное"
+    }
+
+    private func presentEdit(for tracker: Tracker) {
+        let category = currentCategory(for: tracker)
+        let completed = (try? recordStore.count(forTrackerId: tracker.id)) ?? 0
+        let form = TrackerFormViewController(mode: .edit(
+            tracker: tracker,
+            categoryTitle: category,
+            completedDays: completed
+        ))
+        form.onSave = { [weak self] updated, newCategory in
+            try? self?.trackerStore.update(updated, categoryTitle: newCategory)
+        }
+        let nav = UINavigationController(rootViewController: form)
+        nav.modalPresentationStyle = .pageSheet
+        present(nav, animated: true)
     }
 
     private func confirmDelete(tracker: Tracker) {
@@ -351,6 +456,8 @@ extension TrackersViewController: UICollectionViewDataSource, UICollectionViewDe
 
         let today = Calendar.iso8601Ru.startOfDay(for: Date())
         if currentDate > today { return }
+
+        AnalyticsService.shared.report(event: .click, screen: .main, item: .track)
 
         do {
             let record = TrackerRecord(trackerId: tracker.id, date: currentDate)

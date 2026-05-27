@@ -9,10 +9,21 @@ final class TrackerFormViewController: UIViewController {
         case color
     }
 
-    var onCreate: ((Tracker, String) -> Void)?
+    enum Mode {
+        case create(TrackerType)
+        case edit(tracker: Tracker, categoryTitle: String, completedDays: Int)
+    }
 
+    var onCreate: ((Tracker, String) -> Void)?
+    var onSave: ((Tracker, String) -> Void)?
+
+    private let mode: Mode
     private let type: TrackerType
     private let nameLimit = 38
+
+    private var existingId: UUID?
+    private var existingIsPinned: Bool = false
+    private var completedDays: Int = 0
 
     private var name: String = ""
     private var selectedCategory: String = "Важное"
@@ -56,21 +67,46 @@ final class TrackerFormViewController: UIViewController {
         return b
     }()
 
-    private lazy var createButton: UIButton = {
+    private lazy var submitButton: UIButton = {
         let b = UIButton(type: .system)
-        b.setTitle("Создать", for: .normal)
+        b.setTitle(isEditMode ? "Сохранить" : "Создать", for: .normal)
         b.setTitleColor(.white, for: .normal)
         b.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         b.backgroundColor = .ypGray
         b.layer.cornerRadius = 16
         b.isEnabled = false
-        b.addTarget(self, action: #selector(createTapped), for: .touchUpInside)
+        b.addTarget(self, action: #selector(submitTapped), for: .touchUpInside)
         return b
     }()
 
-    init(type: TrackerType) {
-        self.type = type
+    private var isEditMode: Bool {
+        if case .edit = mode { return true }
+        return false
+    }
+
+    init(mode: Mode) {
+        self.mode = mode
+        switch mode {
+        case .create(let type):
+            self.type = type
+        case .edit(let tracker, let categoryTitle, let completed):
+            self.type = tracker.schedule.isEmpty ? .irregular : .habit
+            self.existingId = tracker.id
+            self.existingIsPinned = tracker.isPinned
+            self.completedDays = completed
+            self.name = tracker.name
+            self.selectedCategory = categoryTitle
+            self.selectedSchedule = tracker.schedule
+            self.selectedEmojiIndex = TrackerConstants.emojis.firstIndex(of: tracker.emoji)
+            self.selectedColorIndex = UIColor.trackerPalette.firstIndex {
+                $0.toHexString() == tracker.color.toHexString()
+            }
+        }
         super.init(nibName: nil, bundle: nil)
+    }
+
+    convenience init(type: TrackerType) {
+        self.init(mode: .create(type))
     }
 
     @available(*, unavailable)
@@ -79,14 +115,23 @@ final class TrackerFormViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        navigationItem.title = type == .habit ? "Новая привычка" : "Новое нерегулярное событие"
+        navigationItem.title = makeTitle()
         navigationItem.hidesBackButton = true
         setupLayout()
-        updateCreateButtonState()
+        updateSubmitButtonState()
+    }
+
+    private func makeTitle() -> String {
+        switch mode {
+        case .create(let type):
+            return type == .habit ? "Новая привычка" : "Новое нерегулярное событие"
+        case .edit(let tracker, _, _):
+            return tracker.schedule.isEmpty ? "Редактирование нерегулярного события" : "Редактирование привычки"
+        }
     }
 
     private func setupLayout() {
-        let buttonStack = UIStackView(arrangedSubviews: [cancelButton, createButton])
+        let buttonStack = UIStackView(arrangedSubviews: [cancelButton, submitButton])
         buttonStack.axis = .horizontal
         buttonStack.distribution = .fillEqually
         buttonStack.spacing = 8
@@ -115,14 +160,16 @@ final class TrackerFormViewController: UIViewController {
             guard let self, let section = Section(rawValue: sectionIndex) else { return nil }
             switch section {
             case .name:
-                let height: NSCollectionLayoutDimension = .estimated(self.showsNameError ? 110 : 75)
+                let counterHeight: CGFloat = self.isEditMode ? 60 : 0
+                let baseHeight: CGFloat = (self.showsNameError ? 110 : 75) + counterHeight
+                let dim: NSCollectionLayoutDimension = .estimated(baseHeight)
                 let item = NSCollectionLayoutItem(layoutSize: .init(
                     widthDimension: .fractionalWidth(1),
-                    heightDimension: height
+                    heightDimension: dim
                 ))
                 let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(
                     widthDimension: .fractionalWidth(1),
-                    heightDimension: height
+                    heightDimension: dim
                 ), subitems: [item])
                 let s = NSCollectionLayoutSection(group: group)
                 s.contentInsets = .init(top: 24, leading: 16, bottom: 24, trailing: 16)
@@ -176,10 +223,10 @@ final class TrackerFormViewController: UIViewController {
         return true
     }
 
-    private func updateCreateButtonState() {
+    private func updateSubmitButtonState() {
         let enabled = isFormValid
-        createButton.isEnabled = enabled
-        createButton.backgroundColor = enabled ? .ypBlackDay : .ypGray
+        submitButton.isEnabled = enabled
+        submitButton.backgroundColor = enabled ? .ypBlackDay : .ypGray
     }
 
     private func scheduleSubtitle() -> String? {
@@ -201,24 +248,43 @@ final class TrackerFormViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func cancelTapped() {
-        dismiss(animated: true)
+        dismissOrPop()
     }
 
-    @objc private func createTapped() {
+    @objc private func submitTapped() {
         guard isFormValid,
               let emojiIndex = selectedEmojiIndex,
               let colorIndex = selectedColorIndex else { return }
         let tracker = Tracker(
-            id: UUID(),
+            id: existingId ?? UUID(),
             name: name.trimmingCharacters(in: .whitespaces),
             color: palette[colorIndex],
             emoji: emojis[emojiIndex],
-            schedule: type == .habit ? selectedSchedule : []
+            schedule: type == .habit ? selectedSchedule : [],
+            isPinned: existingIsPinned
         )
         let category = selectedCategory
-        let callback = onCreate
-        dismiss(animated: true) {
-            callback?(tracker, category)
+        switch mode {
+        case .create:
+            let callback = onCreate
+            dismissOrPop {
+                callback?(tracker, category)
+            }
+        case .edit:
+            let callback = onSave
+            dismissOrPop {
+                callback?(tracker, category)
+            }
+        }
+    }
+
+    private func dismissOrPop(_ completion: (() -> Void)? = nil) {
+        if let nav = navigationController, nav.viewControllers.count > 1 {
+            let cb = completion
+            nav.popViewController(animated: true)
+            cb?()
+        } else {
+            dismiss(animated: true) { completion?() }
         }
     }
 }
@@ -248,6 +314,7 @@ extension TrackerFormViewController: UICollectionViewDataSource {
             cell.textField.removeTarget(self, action: nil, for: .editingChanged)
             cell.textField.addTarget(self, action: #selector(nameChanged(_:)), for: .editingChanged)
             cell.setError(showsNameError)
+            cell.setCounter(isEditMode ? dayString(for: completedDays) : nil)
             return cell
         case .menu:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MenuCell.reuseID, for: indexPath) as! MenuCell
@@ -282,6 +349,15 @@ extension TrackerFormViewController: UICollectionViewDataSource {
         }
         return header
     }
+
+    private func dayString(for count: Int) -> String {
+        let mod100 = count % 100
+        let mod10 = count % 10
+        if mod100 >= 11 && mod100 <= 14 { return "\(count) дней" }
+        if mod10 == 1 { return "\(count) день" }
+        if mod10 >= 2 && mod10 <= 4 { return "\(count) дня" }
+        return "\(count) дней"
+    }
 }
 
 // MARK: - UICollectionViewDelegate
@@ -305,7 +381,7 @@ extension TrackerFormViewController: UICollectionViewDelegate {
                 paths.append(IndexPath(item: old, section: Section.emoji.rawValue))
             }
             collectionView.reloadItems(at: paths)
-            updateCreateButtonState()
+            updateSubmitButtonState()
         case .color:
             let oldIndex = selectedColorIndex
             selectedColorIndex = indexPath.item
@@ -314,7 +390,7 @@ extension TrackerFormViewController: UICollectionViewDelegate {
                 paths.append(IndexPath(item: old, section: Section.color.rawValue))
             }
             collectionView.reloadItems(at: paths)
-            updateCreateButtonState()
+            updateSubmitButtonState()
         default: break
         }
     }
@@ -335,7 +411,7 @@ extension TrackerFormViewController: UITextFieldDelegate {
             name = text
             setShowsNameError(false)
         }
-        updateCreateButtonState()
+        updateSubmitButtonState()
     }
 
     private func setShowsNameError(_ show: Bool) {
@@ -364,7 +440,7 @@ extension TrackerFormViewController: MenuCellDelegate {
             guard let self else { return }
             self.selectedCategory = title
             self.reloadMenuCell()
-            self.updateCreateButtonState()
+            self.updateSubmitButtonState()
         }
         navigationController?.pushViewController(vc, animated: true)
     }
@@ -376,7 +452,7 @@ extension TrackerFormViewController: MenuCellDelegate {
             guard let self else { return }
             self.selectedSchedule = Array(days)
             self.reloadMenuCell()
-            self.updateCreateButtonState()
+            self.updateSubmitButtonState()
         }
         navigationController?.pushViewController(vc, animated: true)
     }
